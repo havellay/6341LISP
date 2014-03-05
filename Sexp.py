@@ -12,6 +12,7 @@ NILt            = ('NIL', NIL)
 DOT             = 30
 OPENBRACKET     = 40
 CLOSEBRACKET    = 50
+                            # LISP doesn't need SQBRACKETS - remove this
 OPENSQBRACKET   = 60
 CLOSESQBRACKET  = 70
 
@@ -22,26 +23,21 @@ KW_CDR          = 90
 UNKNOWN         = 0
 
 nl_SEXP         = 105
-nl_SEXP1        = 100
-nl_SEXP2        = 110
-nl_SEXP3        = 120
-nl_SEXP4        = 130
 
 nl_CAR          = 200
 nl_CDR          = 210
 
-# nl_SEXP1 -> means create an Sexp. So, call Sexp.NdotN()
-# nl_SEXP2 -> means create an Sexp. So, call Sexp.SdotN()
-# nl_SEXP3 -> means create an Sexp. So, call Sexp.SdotS()
-# nl_SEXP4 -> means create an Sexp. So, call Sexp.NdotS()
+names   = []
+
+# right now, nl_CAR, nl_CDR and everything else creates Sexpressions
 
 grammar = [
             [nl_SEXP,  OPENBRACKET,    NUMBER,     DOT,        NUMBER,         CLOSEBRACKET],
             [nl_SEXP,  OPENBRACKET,    nl_SEXP,    DOT,        NUMBER,         CLOSEBRACKET],
             [nl_SEXP,  OPENBRACKET,    nl_SEXP,    DOT,        nl_SEXP,        CLOSEBRACKET],
             [nl_SEXP,  OPENBRACKET,    NUMBER,     DOT,        nl_SEXP,        CLOSEBRACKET],
-            [nl_CAR,   OPENBRACKET,    KW_CAR,     nl_SEXP,    CLOSEBRACKET],
-            [nl_CDR,   OPENBRACKET,    KW_CDR,     nl_SEXP,    CLOSEBRACKET]
+            [nl_CAR,  OPENBRACKET,    KW_CAR,     nl_SEXP,    CLOSEBRACKET],
+            [nl_CDR,  OPENBRACKET,    KW_CDR,     nl_SEXP,    CLOSEBRACKET]
           ]
 
 # Class Sexp

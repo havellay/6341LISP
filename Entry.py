@@ -7,23 +7,21 @@ if __name__=="__main__":
 
     from Interpreter import Interpreter
 
-    # command = sys.argv[1:]
-    command = "(CAR(1.(2.3)))"      # giving just a sample string now, have
-                                    # to change this and take input from
-                                    # stdin
-    oParser = Interpreter(command)
-    print "for Input \"{}\" Output \"{}\"".format(command, oParser.output)
+    inputSet = [
+                    "(CAR(1.(2.3)))",
+                    "(CDR((1.2).3))",
+                    "(())",
+                    "()",
+                    "(+A)"
+               ]
 
-    command = "(CDR((1.2).3))"
-    oParser = Interpreter(command)
-    print "for Input \"{}\" Output \"{}\"".format(command, oParser.output)
-
-    command = "(CAR((1.2).3))"
-    oParser = Interpreter(command)
-    print "for Input \"{}\" Output \"{}\"".format(command, oParser.output)
-
-    command = "( (2.3) (2.3) )"
-    oParser = Interpreter(command)
-    print "for Input \"{}\" Output \"{}\"".format(command, oParser.output)
+    for x in inputSet:
+        # command = sys.argv[1:]
+        # command = x                   
+                                        # giving just a sample string now, have
+                                        # to change this and take input from
+                                        # stdin
+        oParser = Interpreter(x)
+        print "for Input \"{}\" Output \"{}\"".format(x, oParser.output)
 
 # end of entry point

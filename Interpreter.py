@@ -12,8 +12,13 @@ NILt            = ('NIL', NIL)
 DOT             = 30
 OPENBRACKET     = 40
 CLOSEBRACKET    = 50
+                            # LISP doesn't need SQBRACKETS - remove this
 OPENSQBRACKET   = 60
 CLOSESQBRACKET  = 70
+PLUS            = 35
+MINUS           = 45
+DIVISION        = 55
+MULTIPLICATION  = 65
 
 # Keywords
 KW_CAR          = 80
@@ -22,26 +27,21 @@ KW_CDR          = 90
 UNKNOWN         = 0
 
 nl_SEXP         = 105
-nl_SEXP1        = 100
-nl_SEXP2        = 110
-nl_SEXP3        = 120
-nl_SEXP4        = 130
 
 nl_CAR          = 200
 nl_CDR          = 210
 
-# nl_SEXP1 -> means create an Sexp. So, call Sexp.NdotN()
-# nl_SEXP2 -> means create an Sexp. So, call Sexp.SdotN()
-# nl_SEXP3 -> means create an Sexp. So, call Sexp.SdotS()
-# nl_SEXP4 -> means create an Sexp. So, call Sexp.NdotS()
+names   = []
+
+# right now, nl_CAR, nl_CDR and everything else creates Sexpressions
 
 grammar = [
             [nl_SEXP,  OPENBRACKET,    NUMBER,     DOT,        NUMBER,         CLOSEBRACKET],
             [nl_SEXP,  OPENBRACKET,    nl_SEXP,    DOT,        NUMBER,         CLOSEBRACKET],
             [nl_SEXP,  OPENBRACKET,    nl_SEXP,    DOT,        nl_SEXP,        CLOSEBRACKET],
             [nl_SEXP,  OPENBRACKET,    NUMBER,     DOT,        nl_SEXP,        CLOSEBRACKET],
-            [nl_CAR,   OPENBRACKET,    KW_CAR,     nl_SEXP,    CLOSEBRACKET],
-            [nl_CDR,   OPENBRACKET,    KW_CDR,     nl_SEXP,    CLOSEBRACKET]
+            [nl_CAR,  OPENBRACKET,    KW_CAR,     nl_SEXP,    CLOSEBRACKET],
+            [nl_CDR,  OPENBRACKET,    KW_CDR,     nl_SEXP,    CLOSEBRACKET]
           ]
 
 # Class Interpreter performs grammar validation and once done calls the 
@@ -76,6 +76,14 @@ class Interpreter :
                     return OPENSQBRACKET
                 elif tok == ']':
                     return CLOSESQBRACKET
+                elif tok == '+':
+                    return PLUS
+                elif tok == '-':
+                    return MINUS
+                elif tok == '/':
+                    return DIVISION
+                elif tok == '*':
+                    return MULTIPLICATION
                 elif tok >= 'A' and tok <= 'Z':
                     return NAME
             elif tok == 'CAR':
@@ -83,6 +91,8 @@ class Interpreter :
             elif tok == 'CDR':
                 return KW_CDR
             else:
+                global names
+                names = names + [tok]
                 return NAME
         else:
             return UNKNOWN
@@ -96,6 +106,9 @@ class Interpreter :
     def evalList(self, expToks):
 
         from Sexp import Sexp
+        
+        if expToks[0][1] == CLOSEBRACKET:
+            return NILt
 
         if expToks[1][1] == CLOSEBRACKET:
             sexp = Sexp()
@@ -104,7 +117,7 @@ class Interpreter :
 
         sexp = Sexp()
         sexp.cons(expToks[0], self.evalList(expToks[1:]))
-        return sexp
+        return (sexp, nl_SEXP)
     # end of evalList()
 
     #####################################
@@ -130,6 +143,12 @@ class Interpreter :
                     x[1] != T           and \
                     x[1] != NIL         and \
                     x[1] != nl_SEXP     and \
+                    x[1] != KW_CAR      and \
+                    x[1] != KW_CDR      and \
+                    x[1] != PLUS        and \
+                    x[1] != MINUS       and \
+                    x[1] != DIVISION    and \
+                    x[1] != MULTIPLICATION and \
                     x[1] != OPENBRACKET and \
                     x[1] != CLOSEBRACKET:
 
@@ -138,13 +157,13 @@ class Interpreter :
                 # end if
             # end for
             if listFailed == False:
-                return (self.evalList(expToks[1:]), nl_SEXP)
+                return self.evalList(expToks[1:])
         # end if
 
         for x in grammar:
             if(len(expToks) == len(x)-1):
+                doesntMatch = False
                 for y in xrange(len(expToks)):
-                    doesntMatch = False
                     if expToks[y][1] != x[y+1]:
                         doesntMatch = True
                         break
@@ -160,23 +179,24 @@ class Interpreter :
 
                 if doesntMatch == True:
                     continue
+                # end if
 
                 sexp = Sexp()
 
                 if x[0] == nl_SEXP:
-                    sexp = sexp.cons(expToks[1], expToks[3])
-                elif x[0] == nl_CAR:
-                    toReturn = expToks[2][0].car
-                    if type(toReturn) == str:
-                        return (toReturn, NUMBER)
-                    else:
-                        return (toReturn, nl_SEXP)
-                elif x[0] == nl_CDR:
-                    toReturn = expToks[2][0].cdr
-                    if type(toReturn) == str:
-                        return (toReturn, NUMBER)
-                    else:
-                        return (toReturn, nl_SEXP)
+                    sexp.cons(expToks[1], expToks[3])
+                # elif x[0] == nl_CAR:
+                #     toReturn = expToks[2][0].car
+                #     if type(toReturn) == str:
+                #         return (toReturn, NUMBER)
+                #     else:
+                #         return (toReturn, nl_SEXP)
+                # elif x[0] == nl_CDR:
+                #     toReturn = expToks[2][0].cdr
+                #     if type(toReturn) == str:
+                #         return (toReturn, NUMBER)
+                #     else:
+                #         return (toReturn, nl_SEXP)
                 # end of if-elif
                 return (sexp, nl_SEXP)
             # end if
@@ -188,30 +208,6 @@ class Interpreter :
 
     # end of evaluate()
 
-    #######################################################
-    # Function : 'bracketImbalance'
-    #   Parameter   : list of tokens
-    #   Returns     : 'True' if imbalance in brackets exists
-    #                 'False' if everything is good
-    ########################################################
-    def bracketImbalance(self, tokList):
-        NetBrackets     = 0
-        NetSqBrackets   = 0
-
-        for x in tokList:
-            if x[1] == OPENBRACKET:
-                NetBrackets += 1
-            elif x[1] == CLOSEBRACKET:
-                NetBrackets -= 1
-            elif x[1] == OPENSQBRACKET:
-                NetSqBrackets += 1
-            elif x[1] == CLOSESQBRACKET:
-                NetSqBrackets -= 1
-        
-        if NetBrackets != 0 or NetSqBrackets != 0:
-            return True
-        return False
-    # end of bracketImbalance()
 
     ################################
     # Function : 'simplifyTokens'
@@ -234,8 +230,6 @@ class Interpreter :
 
             if popped[len(popped)-1][1] == CLOSEBRACKET:
 
-                closeBrktAt = len(popped) - 1
-
                 # pop from popped[] until you get an OPENBRACKET
                 toSimplify = []
                 toSimplify.insert(0, popped.pop())
@@ -245,13 +239,45 @@ class Interpreter :
 
                 # toSimplify has the expression that has to be simplified
                 sexpTuple = self.evaluate(toSimplify)
-                print "generated new Sexp ",sexpTuple
                 popped.append(sexpTuple)
             # end of if
         # end of while
 
         return popped[0]
     # end of simplifyTokens()
+
+
+    #######################################################
+    # Function : 'bracketImbalance'
+    #   Parameter   : list of tokens
+    #   Returns     : 'True' if imbalance in brackets exists
+    #                 'False' if everything is good
+    ########################################################
+    def bracketImbalance(self, tokList):
+        NetBrackets     = 0
+        NetSqBrackets   = 0
+
+        for x in tokList:
+            if x[1] == OPENBRACKET:
+                NetBrackets += 1
+            elif x[1] == CLOSEBRACKET:
+                NetBrackets -= 1
+            elif x[1] == OPENSQBRACKET:
+                NetSqBrackets += 1
+            elif x[1] == CLOSESQBRACKET:
+                NetSqBrackets -= 1
+            if NetBrackets < 0 or NetSqBrackets < 0:
+                print "There is an imbalance in your brackets"
+                return True
+                break
+
+        # add something to check dot imbalance        
+
+        if NetBrackets != 0 or NetSqBrackets != 0:
+            return True
+        return False
+    # end of bracketImbalance()
+
 
     ################################
     # Function : 'parse'
@@ -279,6 +305,9 @@ class Interpreter :
             elif simplified[1] == nl_SEXP:
                 self.output = simplified[0].printSexp()
                 print "RESULT sexp : ", simplified[0].printSexp()
+            elif simplified[1] == NIL:
+                self.output = "NIL"
+                print "RESULT sexp : NIL"
     # end of parse()
 
     ################################
@@ -287,6 +316,7 @@ class Interpreter :
     #   Returns     : 
     ################################
     def __init__(self, command):
+        names = []
         self.parse(command)
     # end of __init__()
 
