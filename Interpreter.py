@@ -1,48 +1,58 @@
+# LISP INTERPRETER FOR CSE 6341
+# author    : Karpaka Vellaya Haribabu
+# email     : karpakavellaya.1@osu.edu
+#
+
+# This version of the LISP interpreter displays
+# the Parse tree formed from the user's input
+# the tree is not evaluated by the Interpreter
+# at the moment
+
+
 import sys
 
-T               = 5
-NUMBER          = 10
-NAME            = 20
-NIL             = 25
+sexpdebug       = False
+                    # 1 2 3 4 unused #
 
-Tt              = ('T', T)
-NILt            = ('NIL', NIL)
+T               = 1<<5
+Ttup            = ('T', T)
+
+NIL             = 1<<6
+NILtup          = ('NIL', NIL)
+
+NUMBER          = 1<<7
+NAME            = 1<<8
+nl_SEXP         = 1<<9
+
+VAR             = T | NIL | NUMBER | NAME | nl_SEXP
+
+                    # 10 11 unused #
 
 # Delimiters
-DOT             = 30
-OPENBRACKET     = 40
-CLOSEBRACKET    = 50
-                            # LISP doesn't need SQBRACKETS - remove this
-OPENSQBRACKET   = 60
-CLOSESQBRACKET  = 70
-PLUS            = 35
-MINUS           = 45
-DIVISION        = 55
-MULTIPLICATION  = 65
+DOT             = 1<<12
+OPENBRACKET     = 1<<13
+CLOSEBRACKET    = 1<<14
+
+SPECIALSYMBOL   = DOT | OPENBRACKET | CLOSEBRACKET
+
+                    # 15 unused #
 
 # Keywords
-KW_CAR          = 80
-KW_CDR          = 90
+KW_CAR          = 1<<16
+KW_CDR          = 1<<17
+
+KEYWORD         = KW_CAR | KW_CDR   # KEYWORDS are only CAR and CDR, which return atoms ?
 
 UNKNOWN         = 0
 
-nl_SEXP         = 105
+names   =   []
 
-nl_CAR          = 200
-nl_CDR          = 210
+# make sure that (car.1) and things are valid for this submission
 
-names   = []
 
-# right now, nl_CAR, nl_CDR and everything else creates Sexpressions
-
-grammar = [
-            [nl_SEXP,  OPENBRACKET,    NUMBER,     DOT,        NUMBER,         CLOSEBRACKET],
-            [nl_SEXP,  OPENBRACKET,    nl_SEXP,    DOT,        NUMBER,         CLOSEBRACKET],
-            [nl_SEXP,  OPENBRACKET,    nl_SEXP,    DOT,        nl_SEXP,        CLOSEBRACKET],
-            [nl_SEXP,  OPENBRACKET,    NUMBER,     DOT,        nl_SEXP,        CLOSEBRACKET],
-            [nl_CAR,  OPENBRACKET,    KW_CAR,     nl_SEXP,    CLOSEBRACKET],
-            [nl_CDR,  OPENBRACKET,    KW_CDR,     nl_SEXP,    CLOSEBRACKET]
-          ]
+grammar =   [
+                [nl_SEXP,  OPENBRACKET,    VAR | KEYWORD,     DOT,        VAR | KEYWORD,         CLOSEBRACKET]
+            ]
 
 # Class Interpreter performs grammar validation and once done calls the 
 #   necessary methods to evaluate the 'command'
@@ -61,37 +71,34 @@ class Interpreter :
     #   Returns     : 'type' of the Token
     #####################################
     def tokType(self, tok):
-        if type(tok) == type('string'):
+        if type(tok) is str:
             if len(tok) == 1:
                 if str.isdigit(tok) == True:
                     return NUMBER
-                # possibly a delimiter such as '.' or '(' or '['
+                # possibly a delimiter such as '.' or '('
                 elif tok == '.':
                     return DOT
                 elif tok == '(':
                     return OPENBRACKET
                 elif tok == ')':
                     return CLOSEBRACKET
-                elif tok == '[':
-                    return OPENSQBRACKET
-                elif tok == ']':
-                    return CLOSESQBRACKET
-                elif tok == '+':
-                    return PLUS
-                elif tok == '-':
-                    return MINUS
-                elif tok == '/':
-                    return DIVISION
-                elif tok == '*':
-                    return MULTIPLICATION
                 elif tok >= 'A' and tok <= 'Z':
                     return NAME
+                else:
+                    # an unrecognized single character
+                    # token found
+                    return False
             elif tok == 'CAR':
                 return KW_CAR
             elif tok == 'CDR':
                 return KW_CDR
             else:
                 global names
+                # '+1 etc. might come here'
+                if tok[0] == '+' or tok[0] == '-':
+                    if str.isdigit(tok[1:]) == True:
+                        return NUMBER
+                # '+A' etc. become a possible 'NAME'
                 names = names + [tok]
                 return NAME
         else:
@@ -99,7 +106,7 @@ class Interpreter :
     # end of tokType()
 
     #####################################
-    # Function : 'evaluate'
+    # Function : 'evalList'
     #   Parameter   : 
     #   Returns     : 
     #####################################
@@ -107,12 +114,12 @@ class Interpreter :
 
         from Sexp import Sexp
         
-        if expToks[0][1] == CLOSEBRACKET:
-            return NILt
+        if expToks[0][1] & CLOSEBRACKET:
+            return NILtup
 
-        if expToks[1][1] == CLOSEBRACKET:
+        if expToks[1][1] & CLOSEBRACKET:
             sexp = Sexp()
-            sexp.cons(expToks[0], NILt)
+            sexp.cons(expToks[0], NILtup)
             return (sexp, nl_SEXP)
 
         sexp = Sexp()
@@ -127,6 +134,8 @@ class Interpreter :
     #####################################
     def evaluate(self, expToks):
 
+        global names
+
         from Sexp import Sexp
 
         # expToks is a list of tuples (token, toketype)
@@ -134,22 +143,13 @@ class Interpreter :
         # and evaluate them
 
         # check whether expToks represents a list
-        if expToks[0][1] == OPENBRACKET and                 \
-            expToks[len(expToks)-1][1] == CLOSEBRACKET:
+        if expToks[0][1] & OPENBRACKET and                 \
+            expToks[len(expToks)-1][1] & CLOSEBRACKET:
             listFailed = False
             for x in expToks:
-                if x[1] != NUMBER       and \
-                    x[1] != NAME        and \
-                    x[1] != T           and \
-                    x[1] != NIL         and \
-                    x[1] != nl_SEXP     and \
-                    x[1] != KW_CAR      and \
-                    x[1] != KW_CDR      and \
-                    x[1] != PLUS        and \
-                    x[1] != MINUS       and \
-                    x[1] != DIVISION    and \
-                    x[1] != MULTIPLICATION and \
-                    x[1] != OPENBRACKET and \
+                if x[1] & VAR       == 0    and \
+                    x[1] & KEYWORD  == 0    and \
+                    x[1] != OPENBRACKET     and \
                     x[1] != CLOSEBRACKET:
 
                     listFailed = True
@@ -157,14 +157,16 @@ class Interpreter :
                 # end if
             # end for
             if listFailed == False:
-                return self.evalList(expToks[1:])
+                var = self.evalList(expToks[1:])
+                return var
+            # end if
         # end if
 
         for x in grammar:
             if(len(expToks) == len(x)-1):
                 doesntMatch = False
                 for y in xrange(len(expToks)):
-                    if expToks[y][1] != x[y+1]:
+                    if expToks[y][1] & x[y+1] == 0:
                         doesntMatch = True
                         break
                     # end if
@@ -185,27 +187,13 @@ class Interpreter :
 
                 if x[0] == nl_SEXP:
                     sexp.cons(expToks[1], expToks[3])
-                # elif x[0] == nl_CAR:
-                #     toReturn = expToks[2][0].car
-                #     if type(toReturn) == str:
-                #         return (toReturn, NUMBER)
-                #     else:
-                #         return (toReturn, nl_SEXP)
-                # elif x[0] == nl_CDR:
-                #     toReturn = expToks[2][0].cdr
-                #     if type(toReturn) == str:
-                #         return (toReturn, NUMBER)
-                #     else:
-                #         return (toReturn, nl_SEXP)
                 # end of if-elif
                 return (sexp, nl_SEXP)
             # end if
             # return NULLSexp
         # end for
 
-        # return NULLSexp
         return False
-
     # end of evaluate()
 
 
@@ -219,26 +207,28 @@ class Interpreter :
         # and whenever a closed bracket occurs, pop until
         # an open bracket and then simplify whatever has
         # popped
+        
         popped = []
         while len(tokList) >-1:
 
             if len(tokList) == 0:
-                print "tokList parsed completely"
                 break
             # end if
             popped.append(tokList.pop(0))
 
-            if popped[len(popped)-1][1] == CLOSEBRACKET:
+            if popped[len(popped)-1][1] & CLOSEBRACKET:
 
                 # pop from popped[] until you get an OPENBRACKET
                 toSimplify = []
                 toSimplify.insert(0, popped.pop())
 
-                while toSimplify[0][1] != OPENBRACKET:
+                while toSimplify[0][1] & OPENBRACKET == 0:
                     toSimplify.insert(0, popped.pop())
 
                 # toSimplify has the expression that has to be simplified
                 sexpTuple = self.evaluate(toSimplify)
+                if type(sexpTuple) is bool and sexpTuple == False:
+                    return False
                 popped.append(sexpTuple)
             # end of if
         # end of while
@@ -255,25 +245,20 @@ class Interpreter :
     ########################################################
     def bracketImbalance(self, tokList):
         NetBrackets     = 0
-        NetSqBrackets   = 0
 
         for x in tokList:
-            if x[1] == OPENBRACKET:
+            if x[1] & OPENBRACKET:
                 NetBrackets += 1
-            elif x[1] == CLOSEBRACKET:
+            elif x[1] & CLOSEBRACKET:
                 NetBrackets -= 1
-            elif x[1] == OPENSQBRACKET:
-                NetSqBrackets += 1
-            elif x[1] == CLOSESQBRACKET:
-                NetSqBrackets -= 1
-            if NetBrackets < 0 or NetSqBrackets < 0:
+            if NetBrackets < 0:
                 print "There is an imbalance in your brackets"
                 return True
                 break
 
         # add something to check dot imbalance        
 
-        if NetBrackets != 0 or NetSqBrackets != 0:
+        if NetBrackets != 0:
             return True
         return False
     # end of bracketImbalance()
@@ -288,26 +273,39 @@ class Interpreter :
         self.output = []
         self.tokens = []
 
+        command = command.upper()
         splitCommand = command.replace('(',' ( ').replace(')',' ) ').replace('.',' . ').split()
 
         for x in splitCommand:
-            self.tokens = self.tokens + [(x, self.tokType(x))]
+            typeOfToken = self.tokType(x)
+
+            # ugly code to catch corners
+            if type(typeOfToken) is bool and typeOfToken == False:
+                return False
+
+            self.tokens = self.tokens + [(x, typeOfToken)]
 
         if self.bracketImbalance(self.tokens) == True:
             print "Error : Malformed Syntax"
 
         else:
-            print "Syntax OK"
             simplified = self.simplifyTokens(self.tokens)
-            if simplified[1] == NUMBER:
+
+            # ugly code to catch corners
+            if type(simplified) is bool and simplified == False:
+                return False
+
+            if simplified[1] & NUMBER:
                 self.output = simplified[0]
-                print "RESULT atom : ", simplified[0]
-            elif simplified[1] == nl_SEXP:
+                # print "RESULT atom : ", simplified[0]
+            elif simplified[1] & nl_SEXP:
                 self.output = simplified[0].printSexp()
-                print "RESULT sexp : ", simplified[0].printSexp()
-            elif simplified[1] == NIL:
-                self.output = "NIL"
-                print "RESULT sexp : NIL"
+                # print "RESULT sexp : ", simplified[0].printSexp()
+            else:
+                self.output = simplified[0]
+                # print "RESULT sexp : ", self.output
+            # end if-elif-else
+        return True
     # end of parse()
 
     ################################
@@ -317,7 +315,11 @@ class Interpreter :
     ################################
     def __init__(self, command):
         names = []
-        self.parse(command)
+        anOutput = self.parse(command)
+        if type(anOutput) is bool and anOutput == False:
+            print "Unexpected token in input"
+            self.output = ""
+        # end if
     # end of __init__()
 
 # end of class Interpreter

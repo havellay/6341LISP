@@ -1,44 +1,58 @@
+# LISP INTERPRETER FOR CSE 6341
+# author    : Karpaka Vellaya Haribabu
+# email     : karpakavellaya.1@osu.edu
+#
+
+# This version of the LISP interpreter displays
+# the Parse tree formed from the user's input
+# the tree is not evaluated by the Interpreter
+# at the moment
+
+
 import sys
 
-T               = 5
-NUMBER          = 10
-NAME            = 20
-NIL             = 25
+sexpdebug       = False
+                    # 1 2 3 4 unused #
 
-Tt              = ('T', T)
-NILt            = ('NIL', NIL)
+T               = 1<<5
+Ttup            = ('T', T)
+
+NIL             = 1<<6
+NILtup          = ('NIL', NIL)
+
+NUMBER          = 1<<7
+NAME            = 1<<8
+nl_SEXP         = 1<<9
+
+VAR             = T | NIL | NUMBER | NAME | nl_SEXP
+
+                    # 10 11 unused #
 
 # Delimiters
-DOT             = 30
-OPENBRACKET     = 40
-CLOSEBRACKET    = 50
-                            # LISP doesn't need SQBRACKETS - remove this
-OPENSQBRACKET   = 60
-CLOSESQBRACKET  = 70
+DOT             = 1<<12
+OPENBRACKET     = 1<<13
+CLOSEBRACKET    = 1<<14
+
+SPECIALSYMBOL   = DOT | OPENBRACKET | CLOSEBRACKET
+
+                    # 15 unused #
 
 # Keywords
-KW_CAR          = 80
-KW_CDR          = 90
+KW_CAR          = 1<<16
+KW_CDR          = 1<<17
+
+KEYWORD         = KW_CAR | KW_CDR   # KEYWORDS are only CAR and CDR, which return atoms ?
 
 UNKNOWN         = 0
 
-nl_SEXP         = 105
+names   =   []
 
-nl_CAR          = 200
-nl_CDR          = 210
+# make sure that (car.1) and things are valid for this submission
 
-names   = []
 
-# right now, nl_CAR, nl_CDR and everything else creates Sexpressions
-
-grammar = [
-            [nl_SEXP,  OPENBRACKET,    NUMBER,     DOT,        NUMBER,         CLOSEBRACKET],
-            [nl_SEXP,  OPENBRACKET,    nl_SEXP,    DOT,        NUMBER,         CLOSEBRACKET],
-            [nl_SEXP,  OPENBRACKET,    nl_SEXP,    DOT,        nl_SEXP,        CLOSEBRACKET],
-            [nl_SEXP,  OPENBRACKET,    NUMBER,     DOT,        nl_SEXP,        CLOSEBRACKET],
-            [nl_CAR,  OPENBRACKET,    KW_CAR,     nl_SEXP,    CLOSEBRACKET],
-            [nl_CDR,  OPENBRACKET,    KW_CDR,     nl_SEXP,    CLOSEBRACKET]
-          ]
+grammar =   [
+                [nl_SEXP,  OPENBRACKET,    VAR | KEYWORD,     DOT,        VAR | KEYWORD,         CLOSEBRACKET]
+            ]
 
 # Class Sexp
 ############################################################################
@@ -50,23 +64,25 @@ class Sexp :
     def cons(self, tok1, tok2):
         self.car = tok1[0]
         self.cdr = tok2[0]
+        if sexpdebug == True:
+            print "DEBUG INFORMATION : created Sexp ", self.printSexp()
         return self
 
     def printSexp(self):
-        string = " ( "
-        if type(self.car) == str:
+        string = "("
+        if type(self.car) is str:
             string = string + self.car
         else:
             string = string + self.car.printSexp() 
 
         string = string + " . "
 
-        if type(self.cdr) == str:
+        if type(self.cdr) is str:
             string = string + self.cdr
         else:
             string = string + self.cdr.printSexp()
         
-        string = string + " ) "
+        string = string + ")"
         return string
 
     def __init__(self):
