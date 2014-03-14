@@ -1,0 +1,50 @@
+README
+
+LISP INTERPRETER FOR CSE 6341
+author    : Karpaka Vellaya, Haribabu
+email     : karpakavellaya.1@osu.edu
+date      : March 5, 2014
+
+This version of the LISP interpreter displays the Parse tree formed from the 
+user's input the tree is not evaluated by the Interpreter at the moment.
+
+To execute the Parser, run either the 'make' executable file or the 'Parser'
+executable file. Both of them are shell script files that contain the 
+invocation command which is `python Entry.py`
+
+        ./make              OR
+        ./Parser
+
+Upon running these commands, the python interpreter should be launched which
+runs the program and shows a prompt that begins with the '~' character.
+
+For the remainder of the document, syntactically valid refers to the 
+feasibility of constructing a Parse Tree for the user's input. 
+
+Upon entering a valid input string, the parser will echo the string entered by
+the user in a cleaner format. This will be in a line beginning with '>>'.
+After this, the interpreter will display the dot separated notation of the
+parse tree (which is an S-expression) as a string.
+
+
+        $ ./Parser 
+        Enter ctrl+D to exit from the prompt
+        ~ (1.3)
+        >>"( 1 . 3 )"
+        >>> "(1 . 3)"
+        
+        ~ (DEFUN SILLY (A B) (PLUS A B))
+        >>"( DEFUN SILLY ( A B ) ( PLUS A B ) )"
+        >>> "(DEFUN . (SILLY . ((A . (B . NIL)) . ((PLUS . (A . (B . NIL))) . 
+        NIL))))"
+        
+        ~ )
+        improper number of brackets : BYE! 
+
+To exit from the prompt, the user has to either enter 'ctrl+D' (which issues
+the default EOF signal to python's stream reader) or has to cause a syntax
+error such as a unbalanced closed bracket as shown in the example.
+
+
+- Hari
+  March 5th 2014

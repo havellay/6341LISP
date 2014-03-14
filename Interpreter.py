@@ -5,14 +5,11 @@
 
 # This version of the LISP interpreter displays
 # the Parse tree formed from the user's input
-# the tree is not evaluated by the Interpreter
+# the tree is not mkTreeEvaluated by the Interpreter
 # at the moment
 
 
 import sys
-
-sexpdebug       = False
-                    # 1 2 3 4 unused #
 
 T               = 1<<5
 Ttup            = ('T', T)
@@ -45,17 +42,24 @@ KEYWORD         = KW_CAR | KW_CDR   # KEYWORDS are only CAR and CDR, which retur
 
 UNKNOWN         = 0
 
-names   =   []
-
-# make sure that (car.1) and things are valid for this submission
-
+names   =   [
+                'CAR',
+                'CDR',
+                'CONS'
+            ]
 
 grammar =   [
                 [nl_SEXP,  OPENBRACKET,    VAR | KEYWORD,     DOT,        VAR | KEYWORD,         CLOSEBRACKET]
             ]
 
+functions   =   [
+                    ('CAR',     1),             # PRIMITIVE1
+                    ('CDR',     2),             # PRIMITIVE2
+                    ('CONS',    3)              # PRIMITIVE3
+                ]
+
 # Class Interpreter performs grammar validation and once done calls the 
-#   necessary methods to evaluate the 'command'
+#   necessary methods to mkTreeEvaluate the 'command'
 ############################################################################
 class Interpreter :
     # Member variables of 'class Interpreter'
@@ -106,11 +110,11 @@ class Interpreter :
     # end of tokType()
 
     #####################################
-    # Function : 'evalList'
+    # Function : 'mkTreeEvalList'
     #   Parameter   : 
     #   Returns     : 
     #####################################
-    def evalList(self, expToks):
+    def mkTreeEvalList(self, expToks):
 
         from Sexp import Sexp
         
@@ -119,28 +123,28 @@ class Interpreter :
 
         if expToks[1][1] & CLOSEBRACKET:
             sexp = Sexp()
-            sexp.cons(expToks[0], NILtup)
+            sexp.make(expToks[0], NILtup)
             return (sexp, nl_SEXP)
 
         sexp = Sexp()
-        sexp.cons(expToks[0], self.evalList(expToks[1:]))
+        sexp.make(expToks[0], self.mkTreeEvalList(expToks[1:]))
         return (sexp, nl_SEXP)
-    # end of evalList()
+    # end of mkTreeEvalList()
 
     #####################################
-    # Function : 'evaluate'
+    # Function : 'mkTreeEvaluate'
     #   Parameter   : 
     #   Returns     : 
     #####################################
-    def evaluate(self, expToks):
+    def mkTreeEvaluate(self, expToks):
 
         global names
 
         from Sexp import Sexp
 
         # expToks is a list of tuples (token, toketype)
-        # evaluate should make sure that expToks is valid
-        # and evaluate them
+        # mkTreeEvaluate should make sure that expToks is valid
+        # and mkTreeEvaluate them
 
         # check whether expToks represents a list
         if expToks[0][1] & OPENBRACKET and                 \
@@ -157,7 +161,7 @@ class Interpreter :
                 # end if
             # end for
             if listFailed == False:
-                var = self.evalList(expToks[1:])
+                var = self.mkTreeEvalList(expToks[1:])
                 return var
             # end if
         # end if
@@ -186,7 +190,7 @@ class Interpreter :
                 sexp = Sexp()
 
                 if x[0] == nl_SEXP:
-                    sexp.cons(expToks[1], expToks[3])
+                    sexp.make(expToks[1], expToks[3])
                 # end of if-elif
                 return (sexp, nl_SEXP)
             # end if
@@ -194,15 +198,15 @@ class Interpreter :
         # end for
 
         return False
-    # end of evaluate()
+    # end of mkTreeEvaluate()
 
 
     ################################
-    # Function : 'simplifyTokens'
+    # Function : 'mkTreeSimplifyTokens'
     #   Parameter   : list of tokens
     #   Returns     : simplified
     ################################
-    def simplifyTokens(self, tokList):
+    def mkTreeSimplifyTokens(self, tokList):
         # the idea is to pop from the tokens as a queue
         # and whenever a closed bracket occurs, pop until
         # an open bracket and then simplify whatever has
@@ -226,7 +230,7 @@ class Interpreter :
                     toSimplify.insert(0, popped.pop())
 
                 # toSimplify has the expression that has to be simplified
-                sexpTuple = self.evaluate(toSimplify)
+                sexpTuple = self.mkTreeEvaluate(toSimplify)
                 if type(sexpTuple) is bool and sexpTuple == False:
                     return False
                 popped.append(sexpTuple)
@@ -234,7 +238,7 @@ class Interpreter :
         # end of while
 
         return popped[0]
-    # end of simplifyTokens()
+    # end of mkTreeSimplifyTokens()
 
 
     #######################################################
@@ -289,7 +293,7 @@ class Interpreter :
             print "Error : Malformed Syntax"
 
         else:
-            simplified = self.simplifyTokens(self.tokens)
+            simplified = self.mkTreeSimplifyTokens(self.tokens)
 
             # ugly code to catch corners
             if type(simplified) is bool and simplified == False:
@@ -299,12 +303,23 @@ class Interpreter :
                 self.output = simplified[0]
                 # print "RESULT atom : ", simplified[0]
             elif simplified[1] & nl_SEXP:
-                self.output = simplified[0].printSexp()
-                # print "RESULT sexp : ", simplified[0].printSexp()
+                self.output = simplified[0].toString()
+
+                # # # # # # # # # S-exp tree is now a 
+                # # # # # # # # # Parse Tree.
+
+                processed = simplified[0].processSexp()
+                if type(processed) == type(simplified[0]):
+                    print processed.toString()
+                else:
+                    print processed, type(processed)
+
+                # print "RESULT sexp : ", simplified[0].toString()
             else:
                 self.output = simplified[0]
                 # print "RESULT sexp : ", self.output
             # end if-elif-else
+
         return True
     # end of parse()
 

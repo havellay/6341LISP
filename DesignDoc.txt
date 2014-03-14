@@ -1,0 +1,53 @@
+Design Document for LISP Interpreter for CSE 6341
+    by Karpaka Vellaya Haribabu
+
+author    : Karpaka Vellaya, Haribabu
+email     : karpakavellaya.1@osu.edu
+date      : March 5, 2014
+
+This Interpreter is written in Python (Version 2.7, 2 and below). The code is
+spread across 3 files :
+    
+    Entry.py        : entry point of the program
+    Interpreter.py  : the grammar validation and processing procedures
+    Sexp.py         : class containing the S-expression related routines
+
+Entry.py : 
+    The code in this file provides the command line to the user from
+    where the user can enter the Lisp statements. There is only one
+    method (not formally defined) which takes input from the user as
+    long as the user enters syntactically valid input. As soon as the
+    user enters an invalid statement, this pseudo method terminates
+    and returns control the user's invoking shell.
+    This pseudo method does some basic error checking such as looking
+    for imbalance in brackets and a superficial examination of the
+    occurrence of 'dots' in the user's input string.
+
+Interpreter.py :
+    Due to lack of knowledge, I had to resort to having the global
+    variables required by the program in two different locations :
+    Interpreter.py and Sexp.py. I plan on mending this in the next
+    version.
+    A token is defined as '(' ')' '.' Numbers and Strings.
+    As soon as the user enters an input string, it is split into
+    tokens and tuples containing the token from the user's input and
+    a numeric identifier of the type of tokens. These are identified
+    using a token type integer returned by the tokType() method.
+    Such a list of tuples are parsed :
+        The parser starts from the beginning of the tokens and goes
+        until the first closed bracket. Once the closed bracket is 
+        reached, we take the list of tokens from the closed bracket
+        to the immediate previous open bracket. This sublist is 
+        evaluated to a s-expression by the evaluate() method.
+        This s-expression can contain lists as well : courtesy of the
+        evalList() method.
+    Therefore, the idea is to continuously reduce an s-expression
+    until it reaches a single s-expression.
+
+Sexp.py :
+    If the user inputs two continuous sexpressions such as (1.3)(1.2)
+    only the first sexpression is output to the user. To verify whether
+    the two sexpressions are created, please set the sexpdebug variable
+    in Sexp.py to 'True'.
+
+ - Hari
