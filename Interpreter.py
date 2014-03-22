@@ -38,14 +38,29 @@ SPECIALSYMBOL   = DOT | OPENBRACKET | CLOSEBRACKET
 KW_CAR          = 1<<16
 KW_CDR          = 1<<17
 
-KEYWORD         = KW_CAR | KW_CDR   # KEYWORDS are only CAR and CDR, which return atoms ?
+KEYWORD         = KW_CAR | KW_CDR   # KEYWORDS are only CAR and CDR,
+                                    # which return atoms ?
 
 UNKNOWN         = 0
 
 names   =   [
                 'CAR',
                 'CDR',
-                'CONS'
+                'CONS',
+                'ATOM',
+                'NULL',
+                'EQ',
+                'PLUS',
+                'MINUS',
+                'QUOTIENT',
+                'REMAINDER',
+                'TIMES',
+                'DEFUN',
+                'COND',
+                'QUOTE',
+                'INT',
+                'T',
+                'NIL'
             ]
 
 grammar =   [
@@ -53,9 +68,24 @@ grammar =   [
             ]
 
 functions   =   [
-                    ('CAR',     1),             # PRIMITIVE1
-                    ('CDR',     2),             # PRIMITIVE2
-                    ('CONS',    3)              # PRIMITIVE3
+                    # NAME      ID  ALIST   FUNCCODE
+                    ('CAR',     1,  0,      0),         # PRIMITIVE1
+                    ('CDR',     2,  0,      0),         # PRIMITIVE2
+                    ('CONS',    3,  0,      0),         # PRIMITIVE3
+                    ('ATOM',    4,  0,      0),         # PRIMITIVE4
+                    ('NULL',    5,  0,      0),         # PRIMITIVE5
+                    ('EQ',      6,  0,      0),         # PRIMITIVE6
+                    ('PLUS',    7,  0,      0),         # PRIMITIVE7
+                    ('MINUS',   8,  0,      0),         # PRIMITIVE8
+                    ('QUOTIENT',9,  0,      0),         # PRIMITIVE9
+                    ('REMAINDER',10, 0,      0),         # PRIMITIVE10
+                    ('TIMES',   11, 0,      0),         # PRIMITIVE11
+                    ('DEFUN',   12, 0,      0),         # PRIMITIVE12
+                    ('COND',    13, 0,      0),         # PRIMITIVE13
+                    ('QUOTE',   14, 0,      0),         # PRIMITIVE14
+                    ('INT',     15, 0,      0),         # PRIMITIVE15
+                    ('T',       16, 0,      0),         # PRIMITIVE16
+                    ('NIL',     17, 0,      0)          # PRIMITIVE17
                 ]
 
 # Class Interpreter performs grammar validation and once done calls the 
